@@ -109,15 +109,6 @@ yarn start
    - `a` para abrir no Android Emulator
    - `w` para abrir na web
 
-## 📱 Screenshots
-
-<div style="display: flex; flex-direction: row;">
-  <img src="screenshots/home.png" width="200" alt="Tela Inicial" />
-  <img src="screenshots/cartao.png" width="200" alt="Cartão" />
-  <img src="screenshots/faturas.png" width="200" alt="Faturas" />
-  <img src="screenshots/extrato.png" width="200" alt="Extrato" />
-</div>
-
 ## 🔒 Segurança
 
 O aplicativo implementa as melhores práticas de segurança para aplicativos financeiros:
@@ -127,21 +118,15 @@ O aplicativo implementa as melhores práticas de segurança para aplicativos fin
 - Opção de ocultar informações financeiras
 - Bloqueio temporário de cartão
 
-## 🔄 Próximas Atualizações
 
-- Implementação de biometria
-- Notificações push
-- Investimentos
-- Pagamento de boletos via câmera
-- Suporte a múltiplas contas
 
 ## 📄 Licença
 
 Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-## 👨‍💻 Autor
+## 👩‍💻 Autora
 
-Desenvolvido por [Seu Nome](https://github.com/seu-usuario)
+Desenvolvido por [Elissandra Santos](https://github.com/elissandrasantos/app-banco-digital)
 
 ---
 
