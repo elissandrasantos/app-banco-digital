@@ -1,50 +1,148 @@
-# Welcome to your Expo app 👋
+# Banco Digital - Aplicativo Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+![Banco Digital](https://img.shields.io/badge/Banco%20Digital-1.0.0-blue)
+![React Native](https://img.shields.io/badge/React%20Native-0.79.5-blue)
+![Expo](https://img.shields.io/badge/Expo-53.0.17-white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-blue)
 
-## Get started
+Um aplicativo de banco digital moderno desenvolvido com React Native e Expo, oferecendo uma experiência de usuário intuitiva e segura para gerenciamento financeiro.
 
-1. Install dependencies
+## 📱 Funcionalidades
 
-   ```bash
-   npm install
-   ```
+- **Tela Inicial**: Visualização de saldo, limite de cartão e ações rápidas
+- **Cartões**: Gerenciamento de cartões físicos e virtuais
+- **Faturas**: Visualização e pagamento de faturas mensais
+- **Extrato**: Acompanhamento de transações e movimentações
+- **Transferências**: Envio de dinheiro via PIX, TED e DOC
+- **Perfil**: Gerenciamento de dados pessoais e configurações
 
-2. Start the app
+## 🛠️ Tecnologias Utilizadas
 
-   ```bash
-   npx expo start
-   ```
+### Core
+- **[React Native](https://reactnative.dev/)**: Framework para desenvolvimento mobile
+- **[Expo](https://expo.dev/)**: Plataforma para desenvolvimento React Native
+- **[TypeScript](https://www.typescriptlang.org/)**: Linguagem de programação tipada
+- **[Expo Router](https://docs.expo.dev/router/introduction/)**: Sistema de navegação baseado em arquivos
 
-In the output, you'll find options to open the app in a
+### UI/UX
+- **[React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)**: Animações fluidas
+- **[React Native Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/)**: Gestos nativos
+- **[React Native Safe Area Context](https://github.com/th3rdwave/react-native-safe-area-context)**: Gerenciamento de área segura
+- **[React Native Screens](https://github.com/software-mansion/react-native-screens)**: Otimização de navegação
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Navegação
+- **[@react-navigation/native](https://reactnavigation.org/)**: Navegação entre telas
+- **[@react-navigation/bottom-tabs](https://reactnavigation.org/docs/bottom-tab-navigator/)**: Navegação por tabs
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Componentes e Utilidades
+- **[Expo Font](https://docs.expo.dev/versions/latest/sdk/font/)**: Carregamento de fontes personalizadas
+- **[Expo Status Bar](https://docs.expo.dev/versions/latest/sdk/status-bar/)**: Controle da barra de status
+- **[Expo Splash Screen](https://docs.expo.dev/versions/latest/sdk/splash-screen/)**: Tela de splash
+- **[Expo Linking](https://docs.expo.dev/versions/latest/sdk/linking/)**: Deep linking
+- **[Expo Constants](https://docs.expo.dev/versions/latest/sdk/constants/)**: Constantes do ambiente
+- **[Expo Image](https://docs.expo.dev/versions/latest/sdk/image/)**: Componente de imagem otimizado
+- **[Expo Haptics](https://docs.expo.dev/versions/latest/sdk/haptics/)**: Feedback tátil
 
-## Get a fresh project
+## 📂 Estrutura do Projeto
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+banco-digital/
+├── app/                    # Diretório principal de telas
+│   ├── (tabs)/             # Telas com navegação por tabs
+│   │   ├── _layout.tsx     # Layout das tabs
+│   │   ├── index.tsx       # Tela inicial
+│   │   ├── extrato.tsx     # Tela de extrato
+│   │   ├── transferencia.tsx # Tela de transferência
+│   │   └── perfil.tsx      # Tela de perfil
+│   ├── _layout.tsx         # Layout principal
+│   ├── cartao.tsx          # Tela de cartão
+│   └── faturas.tsx         # Tela de faturas
+├── assets/                 # Recursos estáticos
+│   ├── fonts/              # Fontes personalizadas
+│   └── images/             # Imagens
+├── components/             # Componentes reutilizáveis
+│   ├── ui/                 # Componentes de UI
+│   ├── ThemedText.tsx      # Texto com tema
+│   └── ThemedView.tsx      # View com tema
+├── constants/              # Constantes da aplicação
+│   └── Colors.ts           # Cores do tema
+├── hooks/                  # Hooks personalizados
+│   └── useColorScheme.ts   # Hook para tema claro/escuro
+├── App.js                  # Ponto de entrada da aplicação
+├── app.json                # Configuração do Expo
+├── package.json            # Dependências do projeto
+└── tsconfig.json           # Configuração do TypeScript
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🚀 Instalação e Uso
 
-## Learn more
+### Pré-requisitos
+- Node.js (v18 ou superior)
+- npm ou yarn
+- Expo CLI
+- iOS Simulator ou Android Emulator (opcional)
 
-To learn more about developing your project with Expo, look at the following resources:
+### Instalação
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Clone o repositório:
+```bash
+git clone https://github.com/seu-usuario/banco-digital.git
+cd banco-digital
+```
 
-## Join the community
+2. Instale as dependências:
+```bash
+npm install
+# ou
+yarn install
+```
 
-Join our community of developers creating universal apps.
+3. Inicie o aplicativo:
+```bash
+npm start
+# ou
+yarn start
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+4. Escaneie o QR code com o aplicativo Expo Go (Android) ou a câmera (iOS), ou pressione:
+   - `i` para abrir no iOS Simulator
+   - `a` para abrir no Android Emulator
+   - `w` para abrir na web
+
+## 📱 Screenshots
+
+<div style="display: flex; flex-direction: row;">
+  <img src="screenshots/home.png" width="200" alt="Tela Inicial" />
+  <img src="screenshots/cartao.png" width="200" alt="Cartão" />
+  <img src="screenshots/faturas.png" width="200" alt="Faturas" />
+  <img src="screenshots/extrato.png" width="200" alt="Extrato" />
+</div>
+
+## 🔒 Segurança
+
+O aplicativo implementa as melhores práticas de segurança para aplicativos financeiros:
+
+- Autenticação segura
+- Proteção de dados sensíveis
+- Opção de ocultar informações financeiras
+- Bloqueio temporário de cartão
+
+## 🔄 Próximas Atualizações
+
+- Implementação de biometria
+- Notificações push
+- Investimentos
+- Pagamento de boletos via câmera
+- Suporte a múltiplas contas
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 👨‍💻 Autor
+
+Desenvolvido por [Seu Nome](https://github.com/seu-usuario)
+
+---
+
+© 2025 Banco Digital. Todos os direitos reservados.
