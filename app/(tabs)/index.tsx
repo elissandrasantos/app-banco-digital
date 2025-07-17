@@ -57,7 +57,7 @@ export default function HomeScreen() {
           <Text style={styles.accountLabel}>Conta Digital</Text>
 
           <View style={styles.balanceContainer}>
-            <Text style={styles.balanceText}>R$ 9,60</Text>
+            <Text style={styles.balanceText}>R$ 1.500,00</Text>
             <TouchableOpacity>
               <IconSymbol name="chevron.right" size={24} color="#333" />
             </TouchableOpacity>
@@ -108,6 +108,59 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.menuText}>Mostrar mais</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Extrato de Transações */}
+        <View style={styles.transactionsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Extrato</Text>
+            <TouchableOpacity
+              style={styles.seeAllButton}
+              onPress={() => router.push('/(tabs)/extrato')}
+            >
+              <Text style={styles.seeAllText}>Ver tudo</Text>
+              <IconSymbol name="chevron.right" size={16} color="#0000FF" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Lista de transações */}
+          <View style={styles.transactionsList}>
+            {/* Transação 1 */}
+            <View style={styles.transactionItem}>
+              <View style={styles.transactionIconContainer}>
+                <IconSymbol name="arrow.down" size={18} color="#4CAF50" />
+              </View>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.transactionTitle}>Transferência recebida</Text>
+                <Text style={styles.transactionDate}>Hoje • 14:32</Text>
+              </View>
+              <Text style={styles.transactionAmountPositive}>+ R$ 150,00</Text>
+            </View>
+
+            {/* Transação 2 */}
+            <View style={styles.transactionItem}>
+              <View style={styles.transactionIconContainer}>
+                <IconSymbol name="arrow.up" size={18} color="#FF3B30" />
+              </View>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.transactionTitle}>Pagamento de boleto</Text>
+                <Text style={styles.transactionDate}>Hoje • 10:15</Text>
+              </View>
+              <Text style={styles.transactionAmountNegative}>- R$ 89,90</Text>
+            </View>
+
+            {/* Transação 3 */}
+            <View style={styles.transactionItem}>
+              <View style={styles.transactionIconContainer}>
+                <IconSymbol name="arrow.up" size={18} color="#FF3B30" />
+              </View>
+              <View style={styles.transactionInfo}>
+                <Text style={styles.transactionTitle}>Compra com cartão</Text>
+                <Text style={styles.transactionDate}>Ontem • 19:45</Text>
+              </View>
+              <Text style={styles.transactionAmountNegative}>- R$ 52,30</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -240,5 +293,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     color: '#333',
+  },
+  // Estilos para a seção de extrato
+  transactionsSection: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  seeAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#0000FF',
+    marginRight: 4,
+  },
+  transactionsList: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  transactionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 4,
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#666',
+  },
+  transactionAmountPositive: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  transactionAmountNegative: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF3B30',
   },
 });

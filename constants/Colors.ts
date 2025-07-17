@@ -36,7 +36,7 @@ export const Colors = {
     success: '#4CAF50',
     error: '#FF3B30',
     warning: '#FF9500',
-    primary: '#4040FF',
+    primary: '##0000FF',
     primaryLight: '#6060FF',
     primaryDark: '#0000CC',
     grayText: '#666666',

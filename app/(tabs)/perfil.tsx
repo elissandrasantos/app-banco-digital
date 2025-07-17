@@ -92,7 +92,7 @@ export default function PerfilScreen() {
     >
       <View style={styles.menuItemLeft}>
         <View style={[styles.menuIcon, { backgroundColor: isDark ? '#333' : '#f0f0f0' }]}>
-          <IconSymbol name={item.icon as any} size={20} color="#007AFF" />
+          <IconSymbol name={item.icon as any} size={20} color="#0000FF" />
         </View>
         <View style={styles.menuItemText}>
           <ThemedText style={styles.menuItemTitle}>{item.title}</ThemedText>
@@ -126,7 +126,7 @@ export default function PerfilScreen() {
             <ThemedText style={styles.userDetails}>Agência: 1234 • Conta: 56789-0</ThemedText>
           </View>
           <TouchableOpacity style={styles.editButton}>
-            <IconSymbol name="pencil" size={20} color="#007AFF" />
+            <IconSymbol name="pencil" size={20} color="#0000FF" />
           </TouchableOpacity>
         </ThemedView>
 
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0000FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,

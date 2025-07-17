@@ -26,6 +26,8 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': { iconSet: 'MaterialIcons', iconName: 'code' },
   'chevron.right': { iconSet: 'MaterialIcons', iconName: 'chevron-right' },
   'arrow.left': { iconSet: 'MaterialIcons', iconName: 'arrow-back' },
+  'arrow.up': { iconSet: 'Ionicons', iconName: 'arrow-up' },
+  'arrow.down': { iconSet: 'Ionicons', iconName: 'arrow-down' },
   'eye': { iconSet: 'Ionicons', iconName: 'eye-outline' },
   'eye.slash': { iconSet: 'Ionicons', iconName: 'eye-off-outline' },
   'magnifyingglass': { iconSet: 'Ionicons', iconName: 'search-outline' },
@@ -33,6 +35,12 @@ const MAPPING = {
   'list.bullet': { iconSet: 'Ionicons', iconName: 'list' },
   'arrow.left.arrow.right': { iconSet: 'Ionicons', iconName: 'swap-horizontal' },
   'ellipsis': { iconSet: 'Ionicons', iconName: 'ellipsis-horizontal' },
+  'line.3.horizontal.decrease': { iconSet: 'Ionicons', iconName: 'filter-outline' },
+  'arrow.down.doc': { iconSet: 'Ionicons', iconName: 'download-outline' },
+  'xmark': { iconSet: 'Ionicons', iconName: 'close-outline' },
+  'xmark.circle.fill': { iconSet: 'Ionicons', iconName: 'close-circle' },
+  'building.2': { iconSet: 'FontAwesome5', iconName: 'building' },
+  'doc': { iconSet: 'Ionicons', iconName: 'document-outline' },
 
   // Ícones financeiros
   'creditcard': { iconSet: 'FontAwesome5', iconName: 'credit-card' },

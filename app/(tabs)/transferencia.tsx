@@ -10,7 +10,7 @@ export default function TransferenciaScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   
-  const [selectedType, setSelectedType] = useState<'pix' | 'ted' | 'doc'>('pix');
+  const [selectedType, setSelectedType] = useState<'pix' | 'ted'>('pix');
   const [amount, setAmount] = useState('');
   const [recipient, setRecipient] = useState('');
   const [description, setDescription] = useState('');
@@ -18,7 +18,6 @@ export default function TransferenciaScreen() {
   const transferTypes = [
     { id: 'pix', name: 'PIX', icon: 'qrcode', description: 'Instantâneo e gratuito' },
     { id: 'ted', name: 'TED', icon: 'building.2', description: 'Mesmo dia - R$ 15,00' },
-    { id: 'doc', name: 'DOC', icon: 'doc', description: 'Próximo dia útil - R$ 8,00' },
   ];
 
   const handleTransfer = () => {
@@ -74,16 +73,16 @@ export default function TransferenciaScreen() {
                   styles.transferTypeButton,
                   selectedType === type.id && styles.transferTypeButtonActive,
                   { 
-                    backgroundColor: selectedType === type.id ? '#007AFF' : (isDark ? '#1a1a1a' : '#fff'),
-                    borderColor: selectedType === type.id ? '#007AFF' : (isDark ? '#333' : '#e0e0e0')
+                    backgroundColor: selectedType === type.id ? '#0000FF' : (isDark ? '#1a1a1a' : '#fff'),
+                    borderColor: selectedType === type.id ? '#0000FF' : (isDark ? '#333' : '#e0e0e0')
                   }
                 ]}
-                onPress={() => setSelectedType(type.id as 'pix' | 'ted' | 'doc')}
+                onPress={() => setSelectedType(type.id as 'pix' | 'ted')}
               >
                 <IconSymbol 
                   name={type.icon as any} 
                   size={24} 
-                  color={selectedType === type.id ? '#fff' : '#007AFF'} 
+                  color={selectedType === type.id ? '#fff' : '#0000FF'} 
                 />
                 <ThemedText style={[
                   styles.transferTypeName,
@@ -257,8 +256,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   transferTypeButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#0000FF',
+    borderColor: '#0000FF',
   },
   transferTypeName: {
     fontSize: 16,
@@ -303,7 +302,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0000FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -322,7 +321,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   transferButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#0000FF',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
