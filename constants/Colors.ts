@@ -1,5 +1,5 @@
 /**
- * Cores do tema para o app de banco digital
+ * Cores do tema para o app de banco digital MIROBANK
  */
 
 const tintColorLight = '#0000FF'; // Azul principal
