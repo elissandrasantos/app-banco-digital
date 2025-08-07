@@ -1,11 +1,10 @@
-// Fallback for using various icon sets on Android and web.
+// Optimized icon component for better performance
 
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
+import React from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
 type IconMapping = Record<SymbolViewProps['name'], {
@@ -55,6 +54,43 @@ const MAPPING = {
   'calendar': { iconSet: 'Ionicons', iconName: 'calendar-outline' },
   'lock': { iconSet: 'Ionicons', iconName: 'lock-closed-outline' },
   'bell': { iconSet: 'Ionicons', iconName: 'notifications-outline' },
+  
+  // Ícones específicos para investimentos
+  'shield.checkered': { iconSet: 'FontAwesome5', iconName: 'shield-alt' },
+  'chart.pie': { iconSet: 'FontAwesome5', iconName: 'chart-pie' },
+  'chart.bar': { iconSet: 'FontAwesome5', iconName: 'chart-bar' },
+  'globe': { iconSet: 'FontAwesome5', iconName: 'globe' },
+  'house': { iconSet: 'FontAwesome5', iconName: 'home' },
+  'banknote': { iconSet: 'FontAwesome5', iconName: 'money-bill-wave' },
+  'coins': { iconSet: 'FontAwesome5', iconName: 'coins' },
+  'landmark': { iconSet: 'FontAwesome5', iconName: 'landmark' },
+  'certificate': { iconSet: 'FontAwesome5', iconName: 'certificate' },
+  'piggybank': { iconSet: 'FontAwesome5', iconName: 'piggy-bank' },
+  'safe': { iconSet: 'FontAwesome5', iconName: 'lock' },
+  'trending.up': { iconSet: 'FontAwesome5', iconName: 'trending-up' },
+  'wallet': { iconSet: 'FontAwesome5', iconName: 'wallet' },
+  'university': { iconSet: 'FontAwesome5', iconName: 'university' },
+  'handshake': { iconSet: 'FontAwesome5', iconName: 'handshake' },
+  'questionmark.circle': { iconSet: 'Ionicons', iconName: 'help-circle-outline' },
+  
+  // Ícones para IA e assistente virtual
+  'brain.head.profile': { iconSet: 'FontAwesome5', iconName: 'brain' },
+  'robot': { iconSet: 'FontAwesome5', iconName: 'robot' },
+  'microchip': { iconSet: 'FontAwesome5', iconName: 'microchip' },
+  'cpu': { iconSet: 'Ionicons', iconName: 'hardware-chip-outline' },
+  'sparkles': { iconSet: 'Ionicons', iconName: 'sparkles-outline' },
+  'wand.and.stars': { iconSet: 'FontAwesome5', iconName: 'magic' },
+  'lightbulb': { iconSet: 'Ionicons', iconName: 'bulb-outline' },
+  'chat.bubble': { iconSet: 'Ionicons', iconName: 'chatbubble-outline' },
+  'message.circle': { iconSet: 'Ionicons', iconName: 'chatbubbles-outline' },
+  'headphones': { iconSet: 'FontAwesome5', iconName: 'headphones' },
+  'calculator': { iconSet: 'FontAwesome5', iconName: 'calculator' },
+  'list.clipboard': { iconSet: 'FontAwesome5', iconName: 'clipboard-list' },
+  'building.columns': { iconSet: 'FontAwesome5', iconName: 'columns' },
+  'dollarsign.circle': { iconSet: 'FontAwesome5', iconName: 'dollar-sign' },
+  'arrow.right': { iconSet: 'Ionicons', iconName: 'arrow-forward' },
+  'chevron.left': { iconSet: 'Ionicons', iconName: 'chevron-back' },
+  'minus': { iconSet: 'Ionicons', iconName: 'remove' },
 } as IconMapping;
 
 /**
@@ -62,7 +98,7 @@ const MAPPING = {
  * This ensures a consistent look across platforms, and optimal resource usage.
  * Icon `name`s are based on SF Symbols and require manual mapping to the appropriate icon set.
  */
-export function IconSymbol({
+export const IconSymbol = React.memo(({
   name,
   size = 24,
   color,
@@ -73,26 +109,21 @@ export function IconSymbol({
   color: string | OpaqueColorValue;
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
-}) {
+}) => {
   const iconConfig = MAPPING[name];
 
   if (!iconConfig) {
-    console.warn(`Icon "${name}" not found in mapping`);
-    return null;
+    return null; // Remove console.warn para melhor performance
   }
 
   switch (iconConfig.iconSet) {
     case 'MaterialIcons':
       return <MaterialIcons name={iconConfig.iconName} size={size} color={color} style={style} />;
-    case 'FontAwesome':
-      return <FontAwesome name={iconConfig.iconName} size={size} color={color} style={style} />;
     case 'FontAwesome5':
       return <FontAwesome5 name={iconConfig.iconName} size={size} color={color} style={style} />;
     case 'Ionicons':
       return <Ionicons name={iconConfig.iconName} size={size} color={color} style={style} />;
-    case 'MaterialCommunityIcons':
-      return <MaterialCommunityIcons name={iconConfig.iconName} size={size} color={color} style={style} />;
     default:
       return <MaterialIcons name="error" size={size} color={color} style={style} />;
   }
-}
+});

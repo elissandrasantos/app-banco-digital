@@ -2,8 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Alert, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -15,10 +15,12 @@ export default function CartaoScreen() {
   const isDark = colorScheme === 'dark';
   const router = useRouter();
   const [showCardDetails, setShowCardDetails] = useState(false);
+  const [isCardBlocked, setIsCardBlocked] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Cor principal do app (azul)
   const primaryColor = isDark ? '#4040FF' : '#0000FF';
-  
+
   // Dados do cartão
   const cardData = {
     type: 'Cartão físico',
@@ -35,14 +37,55 @@ export default function CartaoScreen() {
     setShowCardDetails(!showCardDetails);
   };
 
+  const handleBlockCard = useCallback(() => {
+    if (isProcessing) return;
+
+    const action = isCardBlocked ? 'desbloquear' : 'bloquear';
+    const title = isCardBlocked ? 'Desbloquear Cartão' : 'Bloquear Cartão Temporariamente';
+    const message = isCardBlocked
+      ? 'Tem certeza que deseja desbloquear seu cartão? Ele voltará a funcionar normalmente.'
+      : 'Tem certeza que deseja bloquear temporariamente seu cartão? Você não conseguirá fazer compras até desbloqueá-lo.';
+
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: isCardBlocked ? 'Desbloquear' : 'Bloquear',
+          style: isCardBlocked ? 'default' : 'destructive',
+          onPress: () => {
+            setIsProcessing(true);
+
+            // Simular processamento
+            setTimeout(() => {
+              setIsCardBlocked(!isCardBlocked);
+              setIsProcessing(false);
+
+              const successMessage = isCardBlocked
+                ? 'Cartão desbloqueado com sucesso! Você já pode utilizá-lo normalmente.'
+                : 'Cartão bloqueado temporariamente! Para desbloqueá-lo, acesse esta tela novamente.';
+
+              Alert.alert(
+                'Operação Realizada',
+                successMessage,
+                [{ text: 'OK' }]
+              );
+            }, 2000);
+          }
+        }
+      ]
+    );
+  }, [isCardBlocked, isProcessing]);
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={[styles.container, { backgroundColor: '#fff' }]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            onPress={() => router.back()}
             style={[styles.backButton, { backgroundColor: `${primaryColor}20` }]}
           >
             <IconSymbol name="arrow.left" size={20} color={primaryColor} />
@@ -54,30 +97,38 @@ export default function CartaoScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Card */}
           <View style={styles.cardContainer}>
-            <View style={[styles.card, { backgroundColor: primaryColor }]}>
+            <View style={[styles.card, { backgroundColor: isCardBlocked ? '#666' : primaryColor }]}>
+              {/* Status de Bloqueio */}
+              {isCardBlocked && (
+                <View style={styles.blockedBanner}>
+                  <IconSymbol name="lock" size={16} color="#fff" />
+                  <ThemedText style={styles.blockedText}>CARTÃO BLOQUEADO</ThemedText>
+                </View>
+              )}
+
               {/* Bank Logo */}
               <View style={styles.bankLogoContainer}>
                 <ThemedText style={styles.bankLogo}>Banco XYZ</ThemedText>
               </View>
-              
+
               {/* International Badge */}
               <View style={styles.internationalBadge}>
                 <ThemedText style={styles.internationalText}>Internacional</ThemedText>
               </View>
-              
+
               {/* Card Number */}
               <View style={styles.cardNumberContainer}>
                 <ThemedText style={styles.cardNumber}>
                   {showCardDetails ? cardData.fullNumber : cardData.number}
                 </ThemedText>
               </View>
-              
+
               {/* Card Holder */}
               <View style={styles.cardHolderContainer}>
                 <ThemedText style={styles.cardHolderLabel}>TITULAR DO CARTÃO</ThemedText>
                 <ThemedText style={styles.cardHolderName}>{cardData.name}</ThemedText>
               </View>
-              
+
               {/* Card Logo */}
               <View style={styles.cardLogoContainer}>
                 <View style={styles.cardLogo}>
@@ -98,7 +149,7 @@ export default function CartaoScreen() {
                 <IconSymbol name="doc.on.doc" size={18} color={primaryColor} />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.detailRow}>
               <ThemedText style={styles.detailLabel}>CVV</ThemedText>
               <ThemedText style={styles.detailValue}>
@@ -113,15 +164,15 @@ export default function CartaoScreen() {
           {/* Toggle Card Details */}
           <View style={styles.toggleContainer}>
             <ThemedText style={styles.toggleLabel}>Mostrar dados do cartão</ThemedText>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.toggleButton, 
+                styles.toggleButton,
                 { backgroundColor: showCardDetails ? primaryColor : '#e0e0e0' }
               ]}
               onPress={toggleCardDetails}
             >
               <View style={[
-                styles.toggleKnob, 
+                styles.toggleKnob,
                 { transform: [{ translateX: showCardDetails ? 20 : 0 }] }
               ]} />
             </TouchableOpacity>
@@ -130,13 +181,37 @@ export default function CartaoScreen() {
           {/* Card Actions */}
           <View style={styles.actionsContainer}>
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.actionButton}>
-                <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}20` }]}>
-                  <IconSymbol name="lock" size={20} color={primaryColor} />
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  isCardBlocked && { backgroundColor: '#f5f5f5' }
+                ]}
+                onPress={handleBlockCard}
+                disabled={isProcessing}
+              >
+                <View style={[
+                  styles.actionIcon,
+                  { backgroundColor: isCardBlocked ? '#66666620' : `${primaryColor}20` }
+                ]}>
+                  <IconSymbol
+                    name="lock"
+                    size={20}
+                    color={isCardBlocked ? '#666' : primaryColor}
+                  />
                 </View>
-                <ThemedText style={styles.actionText}>Bloquear Temporário</ThemedText>
+                <ThemedText style={[
+                  styles.actionText,
+                  isCardBlocked && { color: '#666' }
+                ]}>
+                  {isProcessing
+                    ? 'Processando...'
+                    : isCardBlocked
+                      ? 'Desbloquear Cartão'
+                      : 'Bloquear Temporário'
+                  }
+                </ThemedText>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.actionButton}>
                 <View style={[styles.actionIcon, { backgroundColor: `${primaryColor}20` }]}>
                   <IconSymbol name="creditcard" size={20} color={primaryColor} />
@@ -368,5 +443,26 @@ const styles = StyleSheet.create({
   credentialsLabel: {
     fontSize: 16,
     color: '#333',
+  },
+  // Estilos para o banner de bloqueio
+  blockedBanner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(102, 102, 102, 0.9)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    gap: 8,
+  },
+  blockedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 });

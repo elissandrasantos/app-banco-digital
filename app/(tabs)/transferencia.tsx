@@ -2,9 +2,43 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import React, { useState } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Dados estáticos movidos para fora do componente
+const TRANSFER_TYPES = [
+  { id: 'pix', name: 'PIX', icon: 'qrcode', description: 'Instantâneo e gratuito' },
+  { id: 'ted', name: 'TED', icon: 'building.2', description: 'Mesmo dia - R$ 15,00' },
+];
+
+const RECENT_CONTACTS = ['Maria Silva', 'Maria Santos', 'Ana Costa'];
+
+// Componente de contato memoizado
+const ContactButton = memo(({ 
+  name, 
+  isDark, 
+  onPress 
+}: { 
+  name: string; 
+  isDark: boolean; 
+  onPress: (name: string) => void;
+}) => {
+  const handlePress = useCallback(() => onPress(name), [name, onPress]);
+  const initials = useMemo(() => name.split(' ').map(n => n[0]).join(''), [name]);
+
+  return (
+    <TouchableOpacity
+      style={[styles.contactButton, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}
+      onPress={handlePress}
+    >
+      <View style={styles.contactAvatar}>
+        <ThemedText style={styles.contactInitial}>{initials}</ThemedText>
+      </View>
+      <ThemedText style={styles.contactName}>{name}</ThemedText>
+    </TouchableOpacity>
+  );
+});
 
 export default function TransferenciaScreen() {
   const colorScheme = useColorScheme();
@@ -15,12 +49,8 @@ export default function TransferenciaScreen() {
   const [recipient, setRecipient] = useState('');
   const [description, setDescription] = useState('');
 
-  const transferTypes = [
-    { id: 'pix', name: 'PIX', icon: 'qrcode', description: 'Instantâneo e gratuito' },
-    { id: 'ted', name: 'TED', icon: 'building.2', description: 'Mesmo dia - R$ 15,00' },
-  ];
-
-  const handleTransfer = () => {
+  // Callbacks memoizados
+  const handleTransfer = useCallback(() => {
     if (!amount || !recipient) {
       Alert.alert('Erro', 'Preencha todos os campos obrigatórios');
       return;
@@ -42,7 +72,20 @@ export default function TransferenciaScreen() {
         }
       ]
     );
-  };
+  }, [amount, recipient, selectedType]);
+
+  const handleContactSelect = useCallback((name: string) => {
+    setRecipient(name);
+  }, []);
+
+  const handleTypeSelect = useCallback((type: 'pix' | 'ted') => {
+    setSelectedType(type);
+  }, []);
+
+  // Verificar se o botão deve estar habilitado
+  const isButtonEnabled = useMemo(() => {
+    return amount.trim() !== '' && recipient.trim() !== '';
+  }, [amount, recipient]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
@@ -66,7 +109,7 @@ export default function TransferenciaScreen() {
         <ThemedView style={styles.section}>
           <ThemedText style={styles.sectionTitle}>Tipo de transferência</ThemedText>
           <View style={styles.transferTypes}>
-            {transferTypes.map((type) => (
+            {TRANSFER_TYPES.map((type) => (
               <TouchableOpacity
                 key={type.id}
                 style={[
@@ -77,7 +120,7 @@ export default function TransferenciaScreen() {
                     borderColor: selectedType === type.id ? '#0000FF' : (isDark ? '#333' : '#e0e0e0')
                   }
                 ]}
-                onPress={() => setSelectedType(type.id as 'pix' | 'ted')}
+                onPress={() => handleTypeSelect(type.id as 'pix' | 'ted')}
               >
                 <IconSymbol 
                   name={type.icon as any} 
@@ -168,19 +211,13 @@ export default function TransferenciaScreen() {
           <ThemedText style={styles.sectionTitle}>Contatos recentes</ThemedText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.recentContacts}>
-              {['Maria Silva', 'Maria Santos', 'Ana Costa'].map((name, index) => (
-                <TouchableOpacity
+              {RECENT_CONTACTS.map((name, index) => (
+                <ContactButton
                   key={index}
-                  style={[styles.contactButton, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}
-                  onPress={() => setRecipient(name)}
-                >
-                  <View style={styles.contactAvatar}>
-                    <ThemedText style={styles.contactInitial}>
-                      {name.split(' ').map(n => n[0]).join('')}
-                    </ThemedText>
-                  </View>
-                  <ThemedText style={styles.contactName}>{name}</ThemedText>
-                </TouchableOpacity>
+                  name={name}
+                  isDark={isDark}
+                  onPress={handleContactSelect}
+                />
               ))}
             </View>
           </ScrollView>
@@ -191,10 +228,10 @@ export default function TransferenciaScreen() {
           <TouchableOpacity
             style={[
               styles.transferButton,
-              (!amount || !recipient) && styles.transferButtonDisabled
+              !isButtonEnabled && styles.transferButtonDisabled
             ]}
             onPress={handleTransfer}
-            disabled={!amount || !recipient}
+            disabled={!isButtonEnabled}
           >
             <ThemedText style={styles.transferButtonText}>
               Continuar

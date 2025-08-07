@@ -2,7 +2,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import React, { useMemo, useState } from 'react';
+import { formatCurrency, formatDate } from '@/utils/performance';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -15,476 +16,47 @@ interface Transaction {
   category: string;
 }
 
-// Função para gerar data no formato ISO
+// Função para gerar data otimizada
 const getDateString = (daysAgo: number): string => {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
   return date.toISOString().split('T')[0];
 };
 
-// Transações dos últimos 7 dias
+// Dados estáticos pré-calculados para melhor performance
 const TRANSACTIONS_7_DAYS: Transaction[] = [
-  {
-    id: '1',
-    type: 'entrada',
-    description: 'Transferência recebida - João',
-    amount: 150.00,
-    date: getDateString(1),
-    category: 'Transferência'
-  },
-  {
-    id: '2',
-    type: 'saida',
-    description: 'Farmácia São Paulo',
-    amount: 45.90,
-    date: getDateString(2),
-    category: 'Saúde'
-  },
-  {
-    id: '3',
-    type: 'saida',
-    description: 'Uber',
-    amount: 18.50,
-    date: getDateString(3),
-    category: 'Transporte'
-  },
-  {
-    id: '4',
-    type: 'saida',
-    description: 'Restaurante Sabor & Arte',
-    amount: 89.90,
-    date: getDateString(4),
-    category: 'Alimentação'
-  },
-  {
-    id: '5',
-    type: 'saida',
-    description: 'Netflix',
-    amount: 39.90,
-    date: getDateString(5),
-    category: 'Entretenimento'
-  },
-  {
-    id: '6',
-    type: 'saida',
-    description: 'Supermercado Extra',
-    amount: 156.78,
-    date: getDateString(6),
-    category: 'Alimentação'
-  }
+  { id: '1', type: 'entrada', description: 'Transferência recebida - João', amount: 150.00, date: getDateString(1), category: 'Transferência' },
+  { id: '2', type: 'saida', description: 'Farmácia São Paulo', amount: 45.90, date: getDateString(2), category: 'Saúde' },
+  { id: '3', type: 'saida', description: 'Uber', amount: 18.50, date: getDateString(3), category: 'Transporte' },
+  { id: '4', type: 'saida', description: 'Restaurante Sabor & Arte', amount: 89.90, date: getDateString(4), category: 'Alimentação' },
+  { id: '5', type: 'saida', description: 'Netflix', amount: 39.90, date: getDateString(5), category: 'Entretenimento' },
+  { id: '6', type: 'saida', description: 'Supermercado Extra', amount: 156.78, date: getDateString(6), category: 'Alimentação' }
 ];
 
-// Transações dos últimos 30 dias (inclui as dos 7 dias)
 const TRANSACTIONS_30_DAYS: Transaction[] = [
   ...TRANSACTIONS_7_DAYS,
-  {
-    id: '7',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(10),
-    category: 'Salário'
-  },
-  {
-    id: '8',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(12),
-    category: 'Moradia'
-  },
-  {
-    id: '9',
-    type: 'saida',
-    description: 'Conta de luz',
-    amount: 156.78,
-    date: getDateString(14),
-    category: 'Contas'
-  },
-  {
-    id: '10',
-    type: 'saida',
-    description: 'Conta de água',
-    amount: 87.45,
-    date: getDateString(14),
-    category: 'Contas'
-  },
-  {
-    id: '11',
-    type: 'saida',
-    description: 'Internet',
-    amount: 99.90,
-    date: getDateString(15),
-    category: 'Contas'
-  },
-  {
-    id: '12',
-    type: 'saida',
-    description: 'Spotify',
-    amount: 19.90,
-    date: getDateString(18),
-    category: 'Entretenimento'
-  },
-  {
-    id: '13',
-    type: 'saida',
-    description: 'Academia',
-    amount: 89.90,
-    date: getDateString(20),
-    category: 'Saúde'
-  },
-  {
-    id: '14',
-    type: 'entrada',
-    description: 'Transferência recebida - Maria',
-    amount: 250.00,
-    date: getDateString(22),
-    category: 'Transferência'
-  },
-  {
-    id: '15',
-    type: 'saida',
-    description: 'Shopping Center',
-    amount: 320.50,
-    date: getDateString(25),
-    category: 'Compras'
-  },
-  {
-    id: '16',
-    type: 'saida',
-    description: 'Estacionamento',
-    amount: 25.00,
-    date: getDateString(28),
-    category: 'Transporte'
-  }
+  { id: '7', type: 'entrada', description: 'Salário', amount: 3500.00, date: getDateString(10), category: 'Salário' },
+  { id: '8', type: 'saida', description: 'Aluguel', amount: 1200.00, date: getDateString(12), category: 'Moradia' },
+  { id: '9', type: 'saida', description: 'Conta de luz', amount: 156.78, date: getDateString(14), category: 'Contas' },
+  { id: '10', type: 'saida', description: 'Conta de água', amount: 87.45, date: getDateString(14), category: 'Contas' }
 ];
 
-// Transações dos últimos 3 meses (inclui as dos 30 dias)
-const TRANSACTIONS_3_MONTHS: Transaction[] = [
-  ...TRANSACTIONS_30_DAYS,
-  {
-    id: '17',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(40),
-    category: 'Salário'
-  },
-  {
-    id: '18',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(70),
-    category: 'Salário'
-  },
-  {
-    id: '19',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(42),
-    category: 'Moradia'
-  },
-  {
-    id: '20',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(72),
-    category: 'Moradia'
-  },
-  {
-    id: '21',
-    type: 'saida',
-    description: 'IPTU',
-    amount: 450.00,
-    date: getDateString(45),
-    category: 'Impostos'
-  },
-  {
-    id: '22',
-    type: 'saida',
-    description: 'Seguro do carro',
-    amount: 180.00,
-    date: getDateString(50),
-    category: 'Transporte'
-  },
-  {
-    id: '23',
-    type: 'entrada',
-    description: 'Reembolso médico',
-    amount: 350.00,
-    date: getDateString(55),
-    category: 'Saúde'
-  },
-  {
-    id: '24',
-    type: 'saida',
-    description: 'Manutenção do carro',
-    amount: 450.00,
-    date: getDateString(60),
-    category: 'Transporte'
-  },
-  {
-    id: '25',
-    type: 'saida',
-    description: 'Presente de aniversário',
-    amount: 150.00,
-    date: getDateString(65),
-    category: 'Compras'
-  },
-  {
-    id: '26',
-    type: 'entrada',
-    description: 'Dividendos',
-    amount: 120.00,
-    date: getDateString(75),
-    category: 'Investimentos'
-  },
-  {
-    id: '27',
-    type: 'saida',
-    description: 'Curso online',
-    amount: 397.00,
-    date: getDateString(80),
-    category: 'Educação'
-  }
-];
+// Componente de item de transação memoizado
+const TransactionItem = memo(({
+  item,
+  isDark,
+  onPress
+}: {
+  item: Transaction;
+  isDark: boolean;
+  onPress: (item: Transaction) => void;
+}) => {
+  const handlePress = useCallback(() => onPress(item), [item, onPress]);
 
-// Transações dos últimos 6 meses (inclui as dos 3 meses)
-const TRANSACTIONS_6_MONTHS: Transaction[] = [
-  ...TRANSACTIONS_3_MONTHS,
-  {
-    id: '28',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(100),
-    category: 'Salário'
-  },
-  {
-    id: '29',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(130),
-    category: 'Salário'
-  },
-  {
-    id: '30',
-    type: 'entrada',
-    description: 'Salário',
-    amount: 3500.00,
-    date: getDateString(160),
-    category: 'Salário'
-  },
-  {
-    id: '31',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(102),
-    category: 'Moradia'
-  },
-  {
-    id: '32',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(132),
-    category: 'Moradia'
-  },
-  {
-    id: '33',
-    type: 'saida',
-    description: 'Aluguel',
-    amount: 1200.00,
-    date: getDateString(162),
-    category: 'Moradia'
-  },
-  {
-    id: '34',
-    type: 'saida',
-    description: 'Viagem de férias',
-    amount: 2500.00,
-    date: getDateString(110),
-    category: 'Lazer'
-  },
-  {
-    id: '35',
-    type: 'saida',
-    description: 'Compra de notebook',
-    amount: 3200.00,
-    date: getDateString(140),
-    category: 'Eletrônicos'
-  },
-  {
-    id: '36',
-    type: 'entrada',
-    description: 'Restituição IR',
-    amount: 1200.00,
-    date: getDateString(150),
-    category: 'Impostos'
-  },
-  {
-    id: '37',
-    type: 'saida',
-    description: 'Conserto do ar condicionado',
-    amount: 350.00,
-    date: getDateString(155),
-    category: 'Moradia'
-  },
-  {
-    id: '38',
-    type: 'entrada',
-    description: 'Venda de item usado',
-    amount: 450.00,
-    date: getDateString(165),
-    category: 'Vendas'
-  },
-  {
-    id: '39',
-    type: 'saida',
-    description: 'Presente de casamento',
-    amount: 300.00,
-    date: getDateString(170),
-    category: 'Presentes'
-  },
-  {
-    id: '40',
-    type: 'saida',
-    description: 'Plano de saúde',
-    amount: 450.00,
-    date: getDateString(175),
-    category: 'Saúde'
-  }
-];
-
-export default function ExtratoScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const [selectedPeriod, setSelectedPeriod] = useState('30dias');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-
-  // Selecionar o conjunto de transações com base no período
-  const getTransactionsByPeriod = () => {
-    switch (selectedPeriod) {
-      case '7dias':
-        return TRANSACTIONS_7_DAYS;
-      case '30dias':
-        return TRANSACTIONS_30_DAYS;
-      case '3meses':
-        return TRANSACTIONS_3_MONTHS;
-      case '6meses':
-        return TRANSACTIONS_6_MONTHS;
-      default:
-        return TRANSACTIONS_30_DAYS;
-    }
-  };
-
-  // Filtrar transações com base no período, busca e filtros
-  const filteredTransactions = useMemo(() => {
-    let filtered = [...getTransactionsByPeriod()];
-
-    // Filtrar por busca
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(transaction =>
-        transaction.description.toLowerCase().includes(query) ||
-        transaction.category.toLowerCase().includes(query)
-      );
-    }
-
-    // Filtrar por categorias selecionadas
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(transaction =>
-        selectedCategories.includes(transaction.category)
-      );
-    }
-
-    // Filtrar por tipos selecionados
-    if (selectedTypes.length > 0) {
-      filtered = filtered.filter(transaction =>
-        selectedTypes.includes(transaction.type)
-      );
-    }
-
-    // Ordenar por data (mais recente primeiro)
-    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [selectedPeriod, searchQuery, selectedCategories, selectedTypes]);
-
-  // Calcular totais
-  const totals = useMemo(() => {
-    const entrada = filteredTransactions.reduce((sum, transaction) =>
-      transaction.type === 'entrada' ? sum + transaction.amount : sum, 0);
-    const saida = filteredTransactions.reduce((sum, transaction) =>
-      transaction.type === 'saida' ? sum + transaction.amount : sum, 0);
-    return { entrada, saida };
-  }, [filteredTransactions]);
-
-  // Extrair categorias únicas para o filtro
-  const categories = useMemo(() => {
-    const uniqueCategories = new Set<string>();
-    TRANSACTIONS_6_MONTHS.forEach(transaction => {
-      uniqueCategories.add(transaction.category);
-    });
-    return Array.from(uniqueCategories).sort();
-  }, []);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  const handleExport = () => {
-    Alert.alert(
-      "Exportar Extrato",
-      "Escolha o formato de exportação",
-      [
-        { text: "PDF", onPress: () => Alert.alert("Sucesso", "Extrato exportado como PDF") },
-        { text: "CSV", onPress: () => Alert.alert("Sucesso", "Extrato exportado como CSV") },
-        { text: "Cancelar", style: "cancel" }
-      ]
-    );
-  };
-
-  const toggleCategoryFilter = (category: string) => {
-    if (selectedCategories.includes(category)) {
-      setSelectedCategories(selectedCategories.filter(c => c !== category));
-    } else {
-      setSelectedCategories([...selectedCategories, category]);
-    }
-  };
-
-  const toggleTypeFilter = (type: string) => {
-    if (selectedTypes.includes(type)) {
-      setSelectedTypes(selectedTypes.filter(t => t !== type));
-    } else {
-      setSelectedTypes([...selectedTypes, type]);
-    }
-  };
-
-  const renderTransactionItem = ({ item }: { item: Transaction }) => (
+  return (
     <TouchableOpacity
-      key={item.id}
       style={[styles.transactionItem, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}
-      onPress={() => Alert.alert("Detalhes", `${item.description}\nValor: ${formatCurrency(item.amount)}\nData: ${formatDate(item.date)}\nCategoria: ${item.category}`)}
+      onPress={handlePress}
     >
       <View style={[
         styles.transactionIcon,
@@ -509,31 +81,148 @@ export default function ExtratoScreen() {
       </ThemedText>
     </TouchableOpacity>
   );
+});
+
+export default function ExtratoScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const [selectedPeriod, setSelectedPeriod] = useState('30dias');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+
+  // Selecionar transações por período (memoizado)
+  const transactionsByPeriod = useMemo(() => {
+    switch (selectedPeriod) {
+      case '7dias':
+        return TRANSACTIONS_7_DAYS;
+      case '30dias':
+        return TRANSACTIONS_30_DAYS;
+      default:
+        return TRANSACTIONS_30_DAYS;
+    }
+  }, [selectedPeriod]);
+
+  // Filtrar transações (otimizado)
+  const filteredTransactions = useMemo(() => {
+    let filtered = transactionsByPeriod;
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(transaction =>
+        transaction.description.toLowerCase().includes(query) ||
+        transaction.category.toLowerCase().includes(query)
+      );
+    }
+
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(transaction =>
+        selectedCategories.includes(transaction.category)
+      );
+    }
+
+    if (selectedTypes.length > 0) {
+      filtered = filtered.filter(transaction =>
+        selectedTypes.includes(transaction.type)
+      );
+    }
+
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactionsByPeriod, searchQuery, selectedCategories, selectedTypes]);
+
+  // Calcular totais (otimizado)
+  const totals = useMemo(() => {
+    let entrada = 0;
+    let saida = 0;
+
+    for (const transaction of filteredTransactions) {
+      if (transaction.type === 'entrada') {
+        entrada += transaction.amount;
+      } else {
+        saida += transaction.amount;
+      }
+    }
+
+    return { entrada, saida };
+  }, [filteredTransactions]);
+
+  // Categorias únicas (memoizado)
+  const categories = useMemo(() => {
+    const uniqueCategories = new Set<string>();
+    TRANSACTIONS_30_DAYS.forEach(transaction => {
+      uniqueCategories.add(transaction.category);
+    });
+    return Array.from(uniqueCategories).sort();
+  }, []);
+
+  // Callbacks memoizados
+  const handleExport = useCallback(() => {
+    Alert.alert(
+      "Exportar Extrato",
+      "Escolha o formato de exportação",
+      [
+        { text: "PDF", onPress: () => Alert.alert("Sucesso", "Extrato exportado como PDF") },
+        { text: "CSV", onPress: () => Alert.alert("Sucesso", "Extrato exportado como CSV") },
+        { text: "Cancelar", style: "cancel" }
+      ]
+    );
+  }, []);
+
+  const handleTransactionPress = useCallback((item: Transaction) => {
+    Alert.alert(
+      "Detalhes",
+      `${item.description}\nValor: ${formatCurrency(item.amount)}\nData: ${formatDate(item.date)}\nCategoria: ${item.category}`
+    );
+  }, []);
+
+  const toggleSearch = useCallback(() => {
+    setShowSearch(prev => !prev);
+  }, []);
+
+  const toggleFilterModal = useCallback(() => {
+    setShowFilterModal(prev => !prev);
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+  }, []);
+
+  const toggleCategoryFilter = useCallback((category: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  }, []);
+
+  const toggleTypeFilter = useCallback((type: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSelectedCategories([]);
+    setSelectedTypes([]);
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#000' : '#f5f5f5' }]}>
       {/* Header */}
       <ThemedView style={styles.header}>
-        <ThemedText type="title" style={styles.title}>
-          Extrato
-        </ThemedText>
+        <ThemedText type="title" style={styles.title}>Extrato</ThemedText>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowSearch(!showSearch)}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={toggleSearch}>
             <IconSymbol name="magnifyingglass" size={24} color={isDark ? '#fff' : '#333'} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowFilterModal(true)}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={toggleFilterModal}>
             <IconSymbol name="line.3.horizontal.decrease" size={24} color={isDark ? '#fff' : '#333'} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleExport}
-          >
+          <TouchableOpacity style={styles.actionButton} onPress={handleExport}>
             <IconSymbol name="arrow.down.doc" size={24} color={isDark ? '#fff' : '#333'} />
           </TouchableOpacity>
         </View>
@@ -552,7 +241,7 @@ export default function ExtratoScreen() {
             autoFocus
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <TouchableOpacity onPress={clearSearch}>
               <IconSymbol name="xmark.circle.fill" size={20} color={isDark ? '#999' : '#666'} />
             </TouchableOpacity>
           )}
@@ -561,8 +250,8 @@ export default function ExtratoScreen() {
 
       {/* Período */}
       <ThemedView style={styles.periodContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.periodScroll}>
-          {['7dias', '30dias', '3meses', '6meses'].map((period) => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {['7dias', '30dias'].map((period) => (
             <TouchableOpacity
               key={period}
               style={[
@@ -576,9 +265,7 @@ export default function ExtratoScreen() {
                 styles.periodText,
                 selectedPeriod === period && { color: '#fff' }
               ]}>
-                {period === '7dias' ? '7 dias' :
-                  period === '30dias' ? '30 dias' :
-                    period === '3meses' ? '3 meses' : '6 meses'}
+                {period === '7dias' ? '7 dias' : '30 dias'}
               </ThemedText>
             </TouchableOpacity>
           ))}
@@ -610,11 +297,19 @@ export default function ExtratoScreen() {
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-            showsVerticalScrollIndicator={true}
-            scrollEnabled={true}
-            decelerationRate="normal"
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           >
-            {filteredTransactions.map((item) => renderTransactionItem({ item }))}
+            {filteredTransactions.map((item) => (
+              <TransactionItem
+                key={item.id}
+                item={item}
+                isDark={isDark}
+                onPress={handleTransactionPress}
+              />
+            ))}
           </ScrollView>
         </View>
       ) : (
@@ -629,13 +324,13 @@ export default function ExtratoScreen() {
         visible={showFilterModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowFilterModal(false)}
+        onRequestClose={toggleFilterModal}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1a1a1a' : '#fff' }]}>
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>Filtros</ThemedText>
-              <TouchableOpacity onPress={() => setShowFilterModal(false)}>
+              <TouchableOpacity onPress={toggleFilterModal}>
                 <IconSymbol name="xmark" size={24} color={isDark ? '#fff' : '#333'} />
               </TouchableOpacity>
             </View>
@@ -671,38 +366,37 @@ export default function ExtratoScreen() {
             </View>
 
             <ThemedText style={styles.filterSectionTitle}>Categorias</ThemedText>
-            <View style={styles.filterCategories}>
-              {categories.map(category => (
-                <TouchableOpacity
-                  key={category}
-                  style={[
-                    styles.filterCategory,
-                    selectedCategories.includes(category) && styles.filterCategorySelected,
-                    { borderColor: isDark ? '#333' : '#e0e0e0' }
-                  ]}
-                  onPress={() => toggleCategoryFilter(category)}
-                >
-                  <ThemedText style={[
-                    styles.filterCategoryText,
-                    selectedCategories.includes(category) && { color: '#0000FF' }
-                  ]}>{category}</ThemedText>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <ScrollView style={{ maxHeight: 200 }}>
+              <View style={styles.filterCategories}>
+                {categories.map(category => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.filterCategory,
+                      selectedCategories.includes(category) && styles.filterCategorySelected,
+                      { borderColor: isDark ? '#333' : '#e0e0e0' }
+                    ]}
+                    onPress={() => toggleCategoryFilter(category)}
+                  >
+                    <ThemedText style={[
+                      styles.filterCategoryText,
+                      selectedCategories.includes(category) && { color: '#0000FF' }
+                    ]}>{category}</ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonOutline]}
-                onPress={() => {
-                  setSelectedCategories([]);
-                  setSelectedTypes([]);
-                }}
+                onPress={clearFilters}
               >
                 <ThemedText style={styles.modalButtonOutlineText}>Limpar</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalButtonFilled]}
-                onPress={() => setShowFilterModal(false)}
+                onPress={toggleFilterModal}
               >
                 <ThemedText style={styles.modalButtonFilledText}>Aplicar</ThemedText>
               </TouchableOpacity>
@@ -760,9 +454,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
-  periodScroll: {
-    flexDirection: 'row',
-  },
   periodButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -812,15 +503,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 12,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   transactionIcon: {
     width: 40,

@@ -1,17 +1,234 @@
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { FinancialDataService, formatCurrency, formatPercentage } from '@/utils/financialData';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useState } from 'react';
+import { Alert, InteractionManager, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Componente de menu memoizado e otimizado
+const MenuButton = memo(({ icon, text, onPress }: { icon: string; text: string; onPress?: () => void }) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+    <View style={styles.menuIconContainer}>
+      <IconSymbol name={icon as any} size={24} color="#333" />
+    </View>
+    <Text style={styles.menuText}>{text}</Text>
+  </TouchableOpacity>
+));
+
+// Componente de transação simplificado e memoizado
+const TransactionItem = memo(({ 
+  icon, 
+  iconColor, 
+  title, 
+  date, 
+  amount, 
+  isPositive 
+}: {
+  icon: string;
+  iconColor: string;
+  title: string;
+  date: string;
+  amount: string;
+  isPositive: boolean;
+}) => (
+  <View style={styles.transactionItem}>
+    <View style={styles.transactionIconContainer}>
+      <IconSymbol name={icon as any} size={18} color={iconColor} />
+    </View>
+    <View style={styles.transactionInfo}>
+      <Text style={styles.transactionTitle}>{title}</Text>
+      <Text style={styles.transactionDate}>{date}</Text>
+    </View>
+    <Text style={isPositive ? styles.transactionAmountPositive : styles.transactionAmountNegative}>
+      {amount}
+    </Text>
+  </View>
+));
+
+// Dados estáticos para evitar recriação
+const RECENT_TRANSACTIONS = [
+  {
+    id: '1',
+    icon: 'arrow.down',
+    iconColor: '#4CAF50',
+    title: 'Transferência recebida',
+    date: 'Hoje • 14:32',
+    amount: '+ R$ 150,00',
+    isPositive: true
+  },
+  {
+    id: '2',
+    icon: 'arrow.up',
+    iconColor: '#FF3B30',
+    title: 'Pagamento de boleto',
+    date: 'Hoje • 10:15',
+    amount: '- R$ 89,90',
+    isPositive: false
+  },
+  {
+    id: '3',
+    icon: 'arrow.up',
+    iconColor: '#FF3B30',
+    title: 'Compra com cartão',
+    date: 'Ontem • 19:45',
+    amount: '- R$ 52,30',
+    isPositive: false
+  }
+];
+
+// Interface para dados econômicos
+interface EconomicData {
+  selic: string;
+  ipca: string;
+  cdi: string;
+  dolar: string;
+}
+
+// Interface para dicas financeiras
+interface FinancialTip {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: string;
+}
+
+// Componente de dica financeira memoizado
+const FinancialTipCard = memo(({ tip, onPress }: { tip: FinancialTip; onPress: () => void }) => (
+  <TouchableOpacity style={styles.tipCard} onPress={onPress}>
+    <View style={styles.tipIconContainer}>
+      <IconSymbol name={tip.icon as any} size={24} color="#0000FF" />
+    </View>
+    <View style={styles.tipContent}>
+      <Text style={styles.tipTitle}>{tip.title}</Text>
+      <Text style={styles.tipDescription}>{tip.description}</Text>
+      <Text style={styles.tipCategory}>{tip.category}</Text>
+    </View>
+    <IconSymbol name="chevron.right" size={16} color="#666" />
+  </TouchableOpacity>
+));
+
+// Componente de indicador econômico memoizado
+const EconomicIndicator = memo(({ label, value, trend }: { label: string; value: string; trend: 'up' | 'down' | 'stable' }) => (
+  <View style={styles.indicatorCard}>
+    <Text style={styles.indicatorLabel}>{label}</Text>
+    <View style={styles.indicatorValueContainer}>
+      <Text style={styles.indicatorValue}>{value}</Text>
+      <IconSymbol 
+        name={trend === 'up' ? 'arrow.up' : trend === 'down' ? 'arrow.down' : 'minus'} 
+        size={12} 
+        color={trend === 'up' ? '#FF3B30' : trend === 'down' ? '#4CAF50' : '#666'} 
+      />
+    </View>
+  </View>
+));
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
+  const [economicData, setEconomicData] = useState<EconomicData | null>(null);
+  const [financialTips, setFinancialTips] = useState<FinancialTip[]>([]);
+  const [loadingEconomicData, setLoadingEconomicData] = useState(false);
 
-  // Cor principal do app (azul)
-  const primaryColor = Colors[colorScheme ?? 'light'].primary;
+  // Função para buscar dados econômicos do Banco Central usando APIs reais
+  const fetchEconomicData = useCallback(async () => {
+    if (loadingEconomicData) return;
+    
+    setLoadingEconomicData(true);
+    try {
+      const indicators = await FinancialDataService.getInstance().getEconomicIndicators();
+      const formattedData: EconomicData = {
+        selic: formatPercentage(indicators.selic),
+        ipca: formatPercentage(indicators.ipca),
+        cdi: formatPercentage(indicators.cdi),
+        dolar: formatCurrency(indicators.dolar)
+      };
+      
+      setEconomicData(formattedData);
+    } catch (error) {
+      console.error('Erro ao buscar dados econômicos:', error);
+      // Dados de fallback
+      setEconomicData({
+        selic: '11,25%',
+        ipca: '4,68%',
+        cdi: '11,15%',
+        dolar: 'R$ 5,43'
+      });
+    } finally {
+      setLoadingEconomicData(false);
+    }
+  }, [loadingEconomicData]);
+
+  // Função para carregar dicas financeiras
+  const loadFinancialTips = useCallback(() => {
+    const tips: FinancialTip[] = [
+      {
+        id: '1',
+        title: 'Reserve sua Emergência',
+        description: 'Mantenha de 3 a 6 meses de gastos guardados para imprevistos',
+        icon: 'shield.checkered',
+        category: 'Planejamento'
+      },
+      {
+        id: '2',
+        title: 'Diversifique Investimentos',
+        description: 'Não coloque todos os ovos na mesma cesta. Varie seus investimentos',
+        icon: 'chart.pie',
+        category: 'Investimentos'
+      },
+      {
+        id: '3',
+        title: 'Controle seus Gastos',
+        description: 'Acompanhe onde seu dinheiro está sendo gasto mensalmente',
+        icon: 'list.clipboard',
+        category: 'Controle'
+      },
+      {
+        id: '4',
+        title: 'Invista no Tesouro Direto',
+        description: 'Uma das formas mais seguras de investir com rentabilidade',
+        icon: 'building.columns',
+        category: 'Investimentos'
+      }
+    ];
+    setFinancialTips(tips);
+  }, []);
+
+  // Carregamento assíncrono após a tela estar pronta
+  useEffect(() => {
+    InteractionManager.runAfterInteractions(() => {
+      setIsReady(true);
+      fetchEconomicData();
+      loadFinancialTips();
+    });
+  }, [fetchEconomicData, loadFinancialTips]);
+
+  // Callbacks memoizados
+  const navigateToCard = useCallback(() => {
+    router.push('/cartao');
+  }, [router]);
+
+  const navigateToExtrato = useCallback(() => {
+    router.push('/(tabs)/extrato');
+  }, [router]);
+
+  const navigateToInvestir = useCallback(() => {
+    router.push('/investir');
+  }, [router]);
+
+  const navigateToRecarga = useCallback(() => {
+    router.push('/recarga');
+  }, [router]);
+
+  const navigateToMostrarMais = useCallback(() => {
+    router.push('/mostrar-mais');
+  }, [router]);
+
+  const navigateToEducacaoFinanceira = useCallback(() => {
+    router.push('/educacao-financeira');
+  }, [router]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
@@ -76,92 +293,139 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Menu de ícones */}
-        <View style={styles.iconMenu}>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push('/cartao')}
-          >
-            <View style={styles.menuIconContainer}>
-              <IconSymbol name="creditcard" size={24} color="#333" />
+        {/* Destaque para Investimentos */}
+        <View style={styles.investmentHighlight}>
+          <View style={styles.investmentCard}>
+            <View style={styles.investmentHeader}>
+              <View style={styles.investmentIconContainer}>
+                <IconSymbol name="chart.line.uptrend.xyaxis" size={32} color="#0000FF" />
+              </View>
+              <View style={styles.investmentTextContainer}>
+                <Text style={styles.investmentTitle}>Faça seu dinheiro render</Text>
+                <Text style={styles.investmentSubtitle}>Investimentos a partir de R$ 50</Text>
+                <Text style={styles.investmentPromo}>🚀 Rentabilidade até 15% ao ano</Text>
+              </View>
             </View>
-            <Text style={styles.menuText}>Cartões</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIconContainer}>
-              <IconSymbol name="chart.line.uptrend.xyaxis" size={24} color="#333" />
-            </View>
-            <Text style={styles.menuText}>Investir</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIconContainer}>
-              <IconSymbol name="phone" size={24} color="#333" />
-            </View>
-            <Text style={styles.menuText}>Recarga</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuIconContainer}>
-              <IconSymbol name="ellipsis" size={24} color="#333" />
-            </View>
-            <Text style={styles.menuText}>Mostrar mais</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Extrato de Transações */}
-        <View style={styles.transactionsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Extrato</Text>
-            <TouchableOpacity
-              style={styles.seeAllButton}
-              onPress={() => router.push('/(tabs)/extrato')}
+            <TouchableOpacity 
+              style={styles.investButton}
+              onPress={navigateToInvestir}
             >
-              <Text style={styles.seeAllText}>Ver tudo</Text>
-              <IconSymbol name="chevron.right" size={16} color="#0000FF" />
+              <Text style={styles.investButtonText}>Começar a Investir</Text>
+              <IconSymbol name="chevron.right" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Lista de transações */}
-          <View style={styles.transactionsList}>
-            {/* Transação 1 */}
-            <View style={styles.transactionItem}>
-              <View style={styles.transactionIconContainer}>
-                <IconSymbol name="arrow.down" size={18} color="#4CAF50" />
-              </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionTitle}>Transferência recebida</Text>
-                <Text style={styles.transactionDate}>Hoje • 14:32</Text>
-              </View>
-              <Text style={styles.transactionAmountPositive}>+ R$ 150,00</Text>
+        {/* Menu de ícones */}
+        <View style={styles.iconMenu}>
+          <MenuButton icon="creditcard" text="Cartões" onPress={navigateToCard} />
+          <MenuButton icon="chart.line.uptrend.xyaxis" text="Investir" onPress={navigateToInvestir} />
+          <MenuButton icon="phone" text="Recarga" onPress={navigateToRecarga} />
+          <MenuButton icon="ellipsis" text="Mostrar mais" onPress={navigateToMostrarMais} />
+        </View>
+
+        {/* Seção de Educação Financeira */}
+        {isReady && (
+          <View style={styles.educationSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>💡 Educação Financeira</Text>
+              <TouchableOpacity 
+                style={styles.aiAssistantButton}
+                onPress={navigateToEducacaoFinanceira}
+              >
+                <View style={styles.aiButtonContent}>
+                  <IconSymbol name="robot" size={18} color="#fff" />
+                  <Text style={styles.aiButtonText}>MiroAI</Text>
+                  <View style={styles.aiButtonBadge}>
+                    <Text style={styles.aiButtonBadgeText}>IA</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
 
-            {/* Transação 2 */}
-            <View style={styles.transactionItem}>
-              <View style={styles.transactionIconContainer}>
-                <IconSymbol name="arrow.up" size={18} color="#FF3B30" />
+            {/* Indicadores Econômicos */}
+            {economicData && (
+              <View style={styles.economicIndicators}>
+                <Text style={styles.indicatorsTitle}>📊 Indicadores Econômicos</Text>
+                <View style={styles.indicatorsGrid}>
+                  <EconomicIndicator label="Taxa Selic" value={economicData.selic} trend="up" />
+                  <EconomicIndicator label="IPCA (12m)" value={economicData.ipca} trend="down" />
+                  <EconomicIndicator label="CDI" value={economicData.cdi} trend="stable" />
+                  <EconomicIndicator label="Dólar" value={economicData.dolar} trend="up" />
+                </View>
               </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionTitle}>Pagamento de boleto</Text>
-                <Text style={styles.transactionDate}>Hoje • 10:15</Text>
-              </View>
-              <Text style={styles.transactionAmountNegative}>- R$ 89,90</Text>
+            )}
+
+            {/* Dicas Financeiras */}
+            <View style={styles.financialTips}>
+              <Text style={styles.tipsTitle}>💰 Dicas para sua Vida Financeira</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsScroll}>
+                {financialTips.map((tip) => (
+                  <FinancialTipCard
+                    key={tip.id}
+                    tip={tip}
+                    onPress={() => {
+                      Alert.alert(
+                        tip.title,
+                        tip.description + '\n\nCategoria: ' + tip.category,
+                        [{ text: 'Entendi', style: 'default' }]
+                      );
+                    }}
+                  />
+                ))}
+              </ScrollView>
             </View>
 
-            {/* Transação 3 */}
-            <View style={styles.transactionItem}>
-              <View style={styles.transactionIconContainer}>
-                <IconSymbol name="arrow.up" size={18} color="#FF3B30" />
+            {/* Calculadora de Investimentos */}
+            <View style={styles.calculatorCard}>
+              <View style={styles.calculatorHeader}>
+                <IconSymbol name="calculator" size={24} color="#0000FF" />
+                <Text style={styles.calculatorTitle}>Calculadora de Investimentos</Text>
               </View>
-              <View style={styles.transactionInfo}>
-                <Text style={styles.transactionTitle}>Compra com cartão</Text>
-                <Text style={styles.transactionDate}>Ontem • 19:45</Text>
-              </View>
-              <Text style={styles.transactionAmountNegative}>- R$ 52,30</Text>
+              <Text style={styles.calculatorDescription}>
+                Simule quanto seu dinheiro pode render com diferentes tipos de investimento
+              </Text>
+              <TouchableOpacity 
+                style={styles.calculatorButton}
+                onPress={navigateToEducacaoFinanceira}
+              >
+                <Text style={styles.calculatorButtonText}>Calcular Rendimento</Text>
+                <IconSymbol name="arrow.right" size={16} color="#0000FF" />
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        )}
+
+        {/* Extrato de Transações - Carrega apenas quando pronto */}
+        {isReady && (
+          <View style={styles.transactionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Extrato</Text>
+              <TouchableOpacity
+                style={styles.seeAllButton}
+                onPress={navigateToExtrato}
+              >
+                <Text style={styles.seeAllText}>Ver tudo</Text>
+                <IconSymbol name="chevron.right" size={16} color="#0000FF" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Lista de transações */}
+            <View style={styles.transactionsList}>
+              {RECENT_TRANSACTIONS.map((transaction) => (
+                <TransactionItem
+                  key={transaction.id}
+                  icon={transaction.icon}
+                  iconColor={transaction.iconColor}
+                  title={transaction.title}
+                  date={transaction.date}
+                  amount={transaction.amount}
+                  isPositive={transaction.isPositive}
+                />
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,7 +448,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#0000FF', // Cor azul para o MIROBANK
+    color: '#0000FF',
   },
   headerActions: {
     flexDirection: 'row',
@@ -294,7 +558,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#333',
   },
-  // Estilos para a seção de extrato
   transactionsSection: {
     marginHorizontal: 20,
     marginBottom: 30,
@@ -367,5 +630,259 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FF3B30',
+  },
+  // Estilos para o destaque de investimentos
+  investmentHighlight: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  investmentCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#0000FF',
+  },
+  investmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  investmentIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0000FF20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  investmentTextContainer: {
+    flex: 1,
+  },
+  investmentTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  investmentSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  investmentPromo: {
+    fontSize: 12,
+    color: '#0000FF',
+    fontWeight: '600',
+  },
+  investButton: {
+    backgroundColor: '#0000FF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  investButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Estilos para a seção de educação financeira
+  educationSection: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+  },
+  economicIndicators: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  indicatorsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+  },
+  indicatorsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  indicatorCard: {
+    width: '48%',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  indicatorLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  indicatorValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  indicatorValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  financialTips: {
+    marginBottom: 16,
+  },
+  tipsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  tipsScroll: {
+    paddingLeft: 4,
+  },
+  tipCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
+    width: 280,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tipIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0000FF10',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  tipContent: {
+    flex: 1,
+    marginRight: 8,
+  },
+  tipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  tipDescription: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
+    marginBottom: 4,
+  },
+  tipCategory: {
+    fontSize: 10,
+    color: '#0000FF',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  calculatorCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  calculatorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calculatorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 12,
+  },
+  calculatorDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  calculatorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#0000FF20',
+  },
+  calculatorButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#0000FF',
+  },
+  // Estilos para o botão do assistente IA
+  aiAssistantButton: {
+    backgroundColor: '#0000FF',
+    borderRadius: 25,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#0000FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  aiButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  aiButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  aiButtonBadge: {
+    backgroundColor: '#00FF88',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 2,
+  },
+  aiButtonBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
