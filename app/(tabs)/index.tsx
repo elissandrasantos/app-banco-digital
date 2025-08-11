@@ -2,8 +2,8 @@ import { IconSymbol } from '@/components/ui/IconSymbol';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FinancialDataService, formatCurrency, formatPercentage } from '@/utils/financialData';
 import { useRouter } from 'expo-router';
-import React, { memo, useCallback, useEffect, useState } from 'react';
-import { Alert, InteractionManager, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, Animated, InteractionManager, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Componente de menu memoizado e otimizado
@@ -131,6 +131,13 @@ export default function HomeScreen() {
   const [economicData, setEconomicData] = useState<EconomicData | null>(null);
   const [financialTips, setFinancialTips] = useState<FinancialTip[]>([]);
   const [loadingEconomicData, setLoadingEconomicData] = useState(false);
+  
+  // Animações para o botão flutuante
+  const floatAnimation = useRef(new Animated.Value(0)).current;
+  const pulseAnimation = useRef(new Animated.Value(1)).current;
+  
+  // Ref para controle do scroll
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Função para buscar dados econômicos do Banco Central usando APIs reais
   const fetchEconomicData = useCallback(async () => {
@@ -205,6 +212,52 @@ export default function HomeScreen() {
     });
   }, [fetchEconomicData, loadFinancialTips]);
 
+  // Animação de flutuação (movimento vertical suave)
+  useEffect(() => {
+    const startFloatAnimation = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatAnimation, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(floatAnimation, {
+            toValue: 0,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+
+    startFloatAnimation();
+  }, [floatAnimation]);
+
+  // Animação de pulsação (escala suave)
+  useEffect(() => {
+    const startPulseAnimation = () => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnimation, {
+            toValue: 1.1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnimation, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    };
+
+    // Inicia a pulsação após um pequeno delay
+    const timer = setTimeout(startPulseAnimation, 1000);
+    return () => clearTimeout(timer);
+  }, [pulseAnimation]);
+
   // Callbacks memoizados
   const navigateToCard = useCallback(() => {
     router.push('/cartao');
@@ -230,9 +283,35 @@ export default function HomeScreen() {
     router.push('/educacao-financeira');
   }, [router]);
 
+  const navigateToPix = useCallback(() => {
+    router.push('/pix');
+  }, [router]);
+
+  const navigateToPagar = useCallback(() => {
+    router.push('/pagar');
+  }, [router]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: '#f5f5f5' }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={scrollViewRef}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={100}
+        decelerationRate={0.7}
+        bounces={true}
+        bouncesZoom={false}
+        alwaysBounceVertical={true}
+        contentInsetAdjustmentBehavior="automatic"
+        scrollEnabled={true}
+        nestedScrollEnabled={false}
+        overScrollMode="auto"
+        scrollsToTop={true}
+        maximumZoomScale={1}
+        minimumZoomScale={1}
+        snapToAlignment="center"
+        snapToInterval={0}
+        pagingEnabled={false}
+      >
         {/* Header com logo MIROBANK */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -282,11 +361,11 @@ export default function HomeScreen() {
 
           {/* Botões de ação rápida */}
           <View style={styles.quickActionButtons}>
-            <TouchableOpacity style={styles.actionPill}>
+            <TouchableOpacity style={styles.actionPill} onPress={navigateToPix}>
               <IconSymbol name="arrow.triangle.2.circlepath" size={20} color="#333" />
               <Text style={styles.actionPillText}>Pix</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionPill}>
+            <TouchableOpacity style={styles.actionPill} onPress={navigateToPagar}>
               <IconSymbol name="barcode" size={20} color="#333" />
               <Text style={styles.actionPillText}>Pagar</Text>
             </TouchableOpacity>
@@ -329,18 +408,6 @@ export default function HomeScreen() {
           <View style={styles.educationSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>💡 Educação Financeira</Text>
-              <TouchableOpacity 
-                style={styles.aiAssistantButton}
-                onPress={navigateToEducacaoFinanceira}
-              >
-                <View style={styles.aiButtonContent}>
-                  <IconSymbol name="robot" size={18} color="#fff" />
-                  <Text style={styles.aiButtonText}>MiroAI</Text>
-                  <View style={styles.aiButtonBadge}>
-                    <Text style={styles.aiButtonBadgeText}>IA</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
             </View>
 
             {/* Indicadores Econômicos */}
@@ -359,7 +426,17 @@ export default function HomeScreen() {
             {/* Dicas Financeiras */}
             <View style={styles.financialTips}>
               <Text style={styles.tipsTitle}>💰 Dicas para sua Vida Financeira</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsScroll}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false} 
+                style={styles.tipsScroll}
+                scrollEventThrottle={100}
+                decelerationRate={0.7}
+                bounces={true}
+                contentInsetAdjustmentBehavior="automatic"
+                overScrollMode="auto"
+                snapToAlignment="start"
+              >
                 {financialTips.map((tip) => (
                   <FinancialTipCard
                     key={tip.id}
@@ -387,7 +464,13 @@ export default function HomeScreen() {
               </Text>
               <TouchableOpacity 
                 style={styles.calculatorButton}
-                onPress={navigateToEducacaoFinanceira}
+                onPress={() => {
+                  Alert.alert(
+                    'Calculadora de Investimentos',
+                    'Use o assistente MiroAI (botão flutuante) para fazer simulações personalizadas de investimentos!',
+                    [{ text: 'Entendi', style: 'default' }]
+                  );
+                }}
               >
                 <Text style={styles.calculatorButtonText}>Calcular Rendimento</Text>
                 <IconSymbol name="arrow.right" size={16} color="#0000FF" />
@@ -427,6 +510,53 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Botão Flutuante do MiroAI com Animações */}
+      <Animated.View
+        style={[
+          styles.floatingAIButton,
+          {
+            transform: [
+              {
+                translateY: floatAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, -8], // Move 8px para cima e para baixo
+                }),
+              },
+              {
+                scale: pulseAnimation,
+              },
+            ],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.floatingButtonTouchable}
+          onPress={navigateToEducacaoFinanceira}
+          activeOpacity={0.8}
+        >
+          <View style={styles.floatingButtonContent}>
+            <IconSymbol name="robot" size={28} color="#fff" />
+            <Animated.View 
+              style={[
+                styles.floatingButtonBadge,
+                {
+                  transform: [
+                    {
+                      scale: pulseAnimation.interpolate({
+                        inputRange: [1, 1.1],
+                        outputRange: [1, 1.2], // Badge pulsa mais que o botão
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            >
+              <Text style={styles.floatingButtonBadgeText}>IA</Text>
+            </Animated.View>
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -848,41 +978,53 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#0000FF',
   },
-  // Estilos para o botão do assistente IA
-  aiAssistantButton: {
+
+  // Estilos para o botão flutuante do MiroAI
+  floatingAIButton: {
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#0000FF',
-    borderRadius: 25,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
     shadowColor: '#0000FF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 3,
     borderColor: '#fff',
   },
-  aiButtonContent: {
-    flexDirection: 'row',
+  floatingButtonTouchable: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 35,
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
   },
-  aiButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
+  floatingButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
-  aiButtonBadge: {
+  floatingButtonBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
     backgroundColor: '#00FF88',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    marginLeft: 2,
+    borderWidth: 2,
+    borderColor: '#fff',
+    minWidth: 24,
+    alignItems: 'center',
   },
-  aiButtonBadgeText: {
+  floatingButtonBadgeText: {
     color: '#000',
     fontSize: 10,
     fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });

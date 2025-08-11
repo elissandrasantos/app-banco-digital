@@ -59,26 +59,51 @@ export class FinancialDataService {
     }
 
     try {
-      // Busca dados reais das APIs do Banco Central
+      // Busca dados reais das APIs do Banco Central com timeout
       const [selicData, ipcaData, dolarData] = await Promise.allSettled([
-        this.fetchSelicRate(),
-        this.fetchIPCARate(),
-        this.fetchDollarRate()
+        Promise.race([
+          this.fetchSelicRate(),
+          new Promise<number>((_, reject) => setTimeout(() => reject(new Error('Timeout Selic')), 8000))
+        ]),
+        Promise.race([
+          this.fetchIPCARate(),
+          new Promise<number>((_, reject) => setTimeout(() => reject(new Error('Timeout IPCA')), 8000))
+        ]),
+        Promise.race([
+          this.fetchDollarRate(),
+          new Promise<number>((_, reject) => setTimeout(() => reject(new Error('Timeout Dólar')), 8000))
+        ])
       ]);
 
+      // Valores de fallback atualizados e realistas
+      const fallbackValues = {
+        selic: 11.25,
+        ipca: 4.68,
+        dolar: 5.43
+      };
+
       const indicators: EconomicIndicators = {
-        selic: selicData.status === 'fulfilled' ? selicData.value : 11.25,
-        ipca: ipcaData.status === 'fulfilled' ? ipcaData.value : 4.68,
-        cdi: selicData.status === 'fulfilled' ? selicData.value - 0.1 : 11.15, // CDI é aproximadamente Selic - 0.1%
-        dolar: dolarData.status === 'fulfilled' ? dolarData.value : 5.43,
+        selic: selicData.status === 'fulfilled' && !isNaN(selicData.value) ? selicData.value : fallbackValues.selic,
+        ipca: ipcaData.status === 'fulfilled' && !isNaN(ipcaData.value) ? ipcaData.value : fallbackValues.ipca,
+        cdi: selicData.status === 'fulfilled' && !isNaN(selicData.value) ? selicData.value - 0.1 : fallbackValues.selic - 0.1,
+        dolar: dolarData.status === 'fulfilled' && !isNaN(dolarData.value) ? dolarData.value : fallbackValues.dolar,
         lastUpdate: new Date().toISOString()
       };
+
+      // Log para debug (apenas em desenvolvimento)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Indicadores econômicos:', {
+          selic: `${selicData.status} - ${selicData.status === 'fulfilled' ? selicData.value : 'fallback'}`,
+          ipca: `${ipcaData.status} - ${ipcaData.status === 'fulfilled' ? ipcaData.value : 'fallback'}`,
+          dolar: `${dolarData.status} - ${dolarData.status === 'fulfilled' ? dolarData.value : 'fallback'}`
+        });
+      }
 
       this.setCache(cacheKey, indicators);
       return indicators;
     } catch (error) {
-      console.error('Erro ao buscar indicadores econômicos:', error);
-      // Retorna dados de fallback atualizados
+      console.error('Erro geral ao buscar indicadores econômicos:', error);
+      // Retorna dados de fallback seguros
       return {
         selic: 11.25,
         ipca: 4.68,
@@ -126,31 +151,87 @@ export class FinancialDataService {
   // Busca cotação do dólar da API do Banco Central
   private async fetchDollarRate(): Promise<number> {
     try {
-      // API do Banco Central para cotação do dólar (PTAX)
-      const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-      const response = await fetch(`https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${today}'&$top=1&$format=json`);
+      // Tenta primeiro uma API mais simples e confiável
+      const response = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        timeout: 5000, // 5 segundos de timeout
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const text = await response.text();
+      
+      // Verifica se a resposta não está vazia
+      if (!text || text.trim() === '') {
+        throw new Error('Resposta vazia da API');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Erro ao fazer parse do JSON:', parseError);
+        throw new Error('JSON inválido recebido da API');
+      }
+      
+      if (data && Array.isArray(data) && data.length > 0 && data[0].valor) {
+        const valor = parseFloat(data[0].valor);
+        if (!isNaN(valor) && valor > 0) {
+          return valor;
+        }
+      }
+      
+      // Se a primeira API falhar, tenta uma API alternativa mais simples
+      return await this.fetchDollarRateAlternative();
+      
+    } catch (error) {
+      console.error('Erro ao buscar cotação do dólar (API principal):', error);
+      
+      // Tenta API alternativa
+      try {
+        return await this.fetchDollarRateAlternative();
+      } catch (alternativeError) {
+        console.error('Erro ao buscar cotação do dólar (API alternativa):', alternativeError);
+        return 5.43; // Fallback com valor realista
+      }
+    }
+  }
+
+  // API alternativa para cotação do dólar
+  private async fetchDollarRateAlternative(): Promise<number> {
+    try {
+      // Usa uma API mais simples do Banco Central
+      const response = await fetch('https://api.bcb.gov.br/dados/serie/bcdata.sgs.10813/dados/ultimos/1?formato=json', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 3000,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
       
-      if (data && data.value && data.value.length > 0) {
-        return parseFloat(data.value[0].cotacaoVenda);
+      if (data && Array.isArray(data) && data.length > 0 && data[0].valor) {
+        const valor = parseFloat(data[0].valor);
+        if (!isNaN(valor) && valor > 0) {
+          return valor;
+        }
       }
       
-      // Se não houver dados para hoje, tenta o último dia útil
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0].replace(/-/g, '');
-      
-      const responseYesterday = await fetch(`https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='${yesterdayStr}'&$top=1&$format=json`);
-      const dataYesterday = await responseYesterday.json();
-      
-      if (dataYesterday && dataYesterday.value && dataYesterday.value.length > 0) {
-        return parseFloat(dataYesterday.value[0].cotacaoVenda);
-      }
-      
-      throw new Error('Dados não encontrados');
+      throw new Error('Dados inválidos da API alternativa');
     } catch (error) {
-      console.error('Erro ao buscar cotação do dólar:', error);
-      return 5.43; // Fallback
+      console.error('Erro na API alternativa do dólar:', error);
+      throw error;
     }
   }
 
